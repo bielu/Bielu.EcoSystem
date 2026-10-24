@@ -10,20 +10,20 @@ const familyCount = sections.reduce((n, s) => n + s.families.length, 0);
 
 <Base
   title="Packages — Arkadiusz Biel"
-  description="Every NuGet package in the bielu .NET ecosystem — AsyncAPI & Arazzo tooling, persistent queues, Aspire extensions and more — grouped by project, with install instructions."
+  description="Every NuGet package in the bielu .NET ecosystem — AsyncAPI & Arazzo tooling, persistent queues, Aspire extensions and more — grouped by category, with install instructions."
 >
   <header class="hero">
     <a class="eyebrow" href="https://bielu.pl">← bielu.pl</a>
     <h1>Packages</h1>
     <p class="lede">
-      Every NuGet package in the bielu .NET ecosystem, grouped by project. Collected from NuGet automatically
+      Every NuGet package in the bielu .NET ecosystem, grouped by category. Collected from NuGet automatically
       and rebuilt every night.
     </p>
 
     <ul class="stats">
       <li><b>{packageCount}</b><span>NuGet packages</span></li>
       <li><b>{formatHeadline(totalDownloads)}</b><span>downloads</span></li>
-      <li><b>{familyCount}</b><span>projects</span></li>
+      <li><b>{familyCount}</b><span>families</span></li>
     </ul>
 
     <label class="search">
