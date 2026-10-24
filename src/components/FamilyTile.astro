@@ -1,0 +1,164 @@
+---
+import {
+  deprecationNote,
+  formatCount,
+  packagePath,
+  recommendedVersion,
+  shortNames,
+  type FamilyGroup,
+} from '../lib/catalog';
+import FamilyArt from './FamilyArt.astro';
+
+interface Props {
+  group: FamilyGroup;
+}
+
+const { group } = Astro.props;
+const { family, summary, packages, totalDownloads, deprecatedCount, art, hue, span } = group;
+const wide = span >= 4;
+const allDeprecated = deprecatedCount === packages.length;
+const typeLabel: Record<string, string> = { DotnetTool: 'tool', Template: 'template' };
+const PREVIEW = wide ? 8 : 4;
+const chips = shortNames(packages.map((p) => p.id));
+---
+
+<article
+  class:list={['tile', { wide, banner: span === 6, deprecated: allDeprecated }]}
+  id={family.slug}
+  style={`--span:${span};--hue:${hue}`}
+  data-family
+>
+  <div class="head">
+    <FamilyArt art={art} hue={hue} size={wide ? 88 : 64} />
+    <div class="intro">
+      <h3>{family.name}</h3>
+      <p class="meta mono">
+        {packages.length} {packages.length === 1 ? 'package' : 'packages'} · {formatCount(totalDownloads)} downloads
+        {deprecatedCount > 0 && <span class="badge warn">{allDeprecated ? 'deprecated' : `${deprecatedCount} deprecated`}</span>}
+      </p>
+    </div>
+  </div>
+
+  <p class="summary">{summary}</p>
+
+  <ul class="chips" aria-hidden="true">
+    {
+      packages.slice(0, PREVIEW).map((p, i) => (
+        <li class:list={{ dep: p.deprecation }}>{chips[i]}</li>
+      ))
+    }
+    {packages.length > PREVIEW && <li class="more">+{packages.length - PREVIEW}</li>}
+  </ul>
+
+  <details>
+    <summary>
+      <span class="label-closed">Show {packages.length === 1 ? 'package' : `all ${packages.length} packages`}</span>
+      <span class="label-open">Hide packages</span>
+    </summary>
+    <ul class="list">
+      {
+        packages.map((pkg) => (
+          <li data-search={[pkg.id, ...pkg.tags, family.name].join(' ').toLowerCase()} title={deprecationNote(pkg) || undefined}>
+            <a class="id mono" href={packagePath(pkg.id)}>
+              {pkg.id}
+            </a>
+            <span class="badges">
+              {typeLabel[pkg.type] && <span class="badge accent">{typeLabel[pkg.type]}</span>}
+              {pkg.deprecation && <span class="badge warn">deprecated</span>}
+            </span>
+            <span class="version mono">{recommendedVersion(pkg)}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </details>
+
+  <div class="links-row">
+    {family.docs && <a href={family.docs}>Docs →</a>}
+    {family.repo && <a href={family.repo}>Source →</a>}
+  </div>
+</article>
+
+<style>
+  .tile {
+    grid-column: span var(--span);
+    position: relative;
+    display: flex; flex-direction: column; gap: 14px;
+    min-width: 0;
+    padding: 22px;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    background:
+      radial-gradient(120% 90% at 0% 0%, hsl(var(--hue) 85% 60% / .10), transparent 60%),
+      var(--bg-elev);
+    box-shadow: var(--shadow);
+    scroll-margin-top: 16px;
+    transition: border-color .15s, transform .15s;
+  }
+  .tile:hover { border-color: hsl(var(--hue) 70% 60% / .55); }
+  .tile[hidden] { display: none; }
+  .tile.deprecated { opacity: .8; }
+
+  .head { display: flex; align-items: center; gap: 16px; }
+  .wide .head { gap: 20px; }
+  .intro { min-width: 0; }
+  h3 { margin: 0 0 4px; font-size: 1.12rem; font-weight: 660; letter-spacing: -.012em; }
+  .wide h3 { font-size: 1.4rem; }
+  .meta { margin: 0; font-size: 12px; color: var(--fg-faint); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+  .summary { margin: 0; color: var(--fg-muted); font-size: 14.5px; line-height: 1.55; }
+  .wide .summary { font-size: 15.5px; max-width: 60ch; }
+
+  .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips li {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: hsl(var(--hue) 80% 60% / .12);
+    color: var(--fg);
+    max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .chips li.dep { text-decoration: line-through; color: var(--fg-faint); }
+  .chips li.more { background: transparent; color: var(--fg-faint); }
+
+  details { margin-top: auto; }
+  summary {
+    cursor: pointer;
+    list-style: none;
+    font-size: 13.5px; font-weight: 600;
+    color: hsl(var(--hue) 70% 45%);
+    width: fit-content;
+  }
+  :global(:root[data-theme="dark"]) summary { color: hsl(var(--hue) 85% 72%); }
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme="light"])) summary { color: hsl(var(--hue) 85% 72%); }
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: '▸ '; }
+  details[open] summary::before { content: '▾ '; }
+  .label-open, details[open] .label-closed { display: none; }
+  details[open] .label-open { display: inline; }
+
+  .list { list-style: none; margin: 12px 0 0; padding: 0; border-top: 1px solid var(--border); }
+  .list li {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center; gap: 10px;
+    padding: 7px 0;
+    font-size: 13px;
+  }
+  .list li + li { border-top: 1px solid var(--border); }
+  .list li[hidden] { display: none; }
+  .id { text-decoration: none; overflow-wrap: anywhere; }
+  .id:hover { color: var(--accent); }
+  .badges { display: flex; gap: 6px; }
+  .version { color: var(--fg-faint); font-size: 12px; max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .links-row { display: flex; gap: 16px; font-size: 13.5px; }
+  .links-row a { color: var(--fg-muted); text-decoration: none; font-weight: 500; }
+  .links-row a:hover { color: var(--accent); }
+
+  @media (max-width: 760px) {
+    .tile { grid-column: span 6; }
+  }
+</style>

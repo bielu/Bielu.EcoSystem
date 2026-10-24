@@ -1,0 +1,107 @@
+---
+import FamilyTile from '../components/FamilyTile.astro';
+import Base from '../layouts/Base.astro';
+import { formatHeadline } from '../lib/catalog';
+import { getCatalog } from '../lib/data';
+
+const { sections, packageCount, totalDownloads } = await getCatalog();
+const familyCount = sections.reduce((n, s) => n + s.families.length, 0);
+---
+
+<Base
+  title="Packages — Arkadiusz Biel"
+  description="Every NuGet package in the bielu .NET ecosystem — AsyncAPI & Arazzo tooling, persistent queues, Aspire extensions and more — grouped by project, with install instructions."
+>
+  <header class="hero">
+    <a class="eyebrow" href="https://bielu.pl">← bielu.pl</a>
+    <h1>Packages</h1>
+    <p class="lede">
+      Every NuGet package in the bielu .NET ecosystem, grouped by project. Collected from NuGet automatically
+      and rebuilt every night.
+    </p>
+
+    <ul class="stats">
+      <li><b>{packageCount}</b><span>NuGet packages</span></li>
+      <li><b>{formatHeadline(totalDownloads)}</b><span>downloads</span></li>
+      <li><b>{familyCount}</b><span>projects</span></li>
+    </ul>
+
+    <label class="search">
+      <span class="visually-hidden">Filter packages</span>
+      <input id="filter" type="search" placeholder="Filter by id or tag — e.g. signalr, kafka, aspire" autocomplete="off" />
+    </label>
+    <p id="empty" class="empty" hidden>No packages match that filter.</p>
+  </header>
+
+  {
+    sections.map((s) => (
+      <section class:list={[s.section]} data-section>
+        <h2>{s.title}</h2>
+        <p class="sub">{s.sub}</p>
+        <div class="bento">
+          {s.families.map((group) => (
+            <FamilyTile group={group} />
+          ))}
+        </div>
+      </section>
+    ))
+  }
+</Base>
+
+<script>
+  const input = document.querySelector<HTMLInputElement>('#filter')!;
+  const empty = document.querySelector<HTMLElement>('#empty')!;
+
+  // Hide non-matching rows, then any family or section left with no visible rows.
+  // While filtering, matching tiles open so the hits are visible.
+  function apply() {
+    const terms = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+    let anyVisible = false;
+    for (const section of document.querySelectorAll<HTMLElement>('[data-section]')) {
+      let sectionVisible = false;
+      for (const family of section.querySelectorAll<HTMLElement>('[data-family]')) {
+        let familyVisible = false;
+        for (const row of family.querySelectorAll<HTMLElement>('li[data-search]')) {
+          const match = terms.every((t) => row.dataset.search!.includes(t));
+          row.hidden = !match;
+          familyVisible ||= match;
+        }
+        family.hidden = !familyVisible;
+        family.querySelector('details')!.open = terms.length > 0;
+        sectionVisible ||= familyVisible;
+      }
+      section.hidden = !sectionVisible;
+      anyVisible ||= sectionVisible;
+    }
+    empty.hidden = anyVisible;
+  }
+
+  input.addEventListener('input', apply);
+  apply();
+</script>
+
+<style>
+  .hero { padding: 72px 0 48px; }
+  .eyebrow { text-decoration: none; }
+  .eyebrow:hover { text-decoration: underline; }
+  .search { display: block; margin-top: 32px; }
+  .search input {
+    width: 100%;
+    font: inherit; font-size: 15px;
+    color: var(--fg);
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 11px 14px;
+  }
+  .search input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  .empty { margin: 16px 0 0; color: var(--fg-muted); }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  section[hidden] { display: none; }
+  .bento {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .legacy .bento { opacity: .85; }
+</style>

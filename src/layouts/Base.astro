@@ -1,0 +1,44 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+  </head>
+  <body>
+    <div class="wrap">
+      <slot />
+      <footer>
+        <span>© {new Date().getFullYear()} Arkadiusz Biel · data from NuGet, rebuilt nightly</span>
+        <span>
+          <a href="https://bielu.pl">bielu.pl</a> ·
+          <a href="https://github.com/bielu">GitHub</a> ·
+          <a href="https://www.nuget.org/profiles/bielu">NuGet</a>
+        </span>
+      </footer>
+    </div>
+  </body>
+</html>

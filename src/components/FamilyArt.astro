@@ -1,0 +1,44 @@
+---
+import type { FamilyArt } from '../lib/catalog';
+import { ILLUSTRATIONS } from '../lib/illustrations';
+
+interface Props {
+  art: FamilyArt;
+  hue: number;
+  /** Rendered size in px. */
+  size?: number;
+}
+
+const ICONS = import.meta.glob<string>('../assets/family-icons/*.svg', { query: '?raw', import: 'default', eager: true });
+
+const { art, hue, size = 72 } = Astro.props;
+const gradient = `linear-gradient(135deg, hsl(${hue} 80% 62%), hsl(${(hue + 35) % 360} 75% 42%))`;
+---
+
+{
+  art.kind === 'image' ? (
+    <img class="art image" src={art.src} alt="" width={size} height={size} loading="lazy" decoding="async" />
+  ) : art.kind === 'icon' ? (
+    <span class="art icon" style={`--art-size:${size}px`} aria-hidden="true" set:html={ICONS[`../assets/family-icons/${art.name}.svg`]} />
+  ) : (
+    <span class="art art-tile" style={`--art-bg:${gradient};--art-size:${size}px`} aria-hidden="true">
+      <svg viewBox="0 0 64 64" set:html={ILLUSTRATIONS[art.name]} />
+    </span>
+  )
+}
+
+<style>
+  .art { flex: none; display: block; }
+  .image { border-radius: 22%; }
+  .icon { width: var(--art-size); height: var(--art-size); }
+  .icon :global(svg) { width: 100%; height: 100%; display: block; }
+  .art-tile {
+    width: var(--art-size);
+    height: var(--art-size);
+    border-radius: 22%;
+    background: var(--art-bg);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18), 0 6px 18px -8px rgba(0, 0, 0, .45);
+    padding: calc(var(--art-size) * .16);
+  }
+  .art-tile svg { width: 100%; height: 100%; display: block; overflow: visible; }
+</style>
