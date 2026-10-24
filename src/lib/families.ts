@@ -142,7 +142,7 @@ export const FAMILIES: Family[] = [
     summary: 'One abstraction over Docker, Podman, containerd and Kubernetes — swap the runtime with a line of config.',
     prefixes: ['Bielu.Microservices.Orchestrator'],
     repo: 'https://github.com/bielu/bielu.microservices.orchestrator',
-    illustration: 'containers',
+    icon: 'orchestrator',
     hue: 200,
   },
   {
