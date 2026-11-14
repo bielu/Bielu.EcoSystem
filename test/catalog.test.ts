@@ -49,6 +49,17 @@ describe('curatedFamilyFor', () => {
     expect(curatedFamilyFor('Novicell.Examine.ElasticSearch')?.section).toBe('legacy');
   });
 
+  it('curatedFamilyFor_DefaultFamiliesClaimBetterSearchPackages', () => {
+    expect(curatedFamilyFor('Bielu.BetterSearch.Core')?.slug).toBe('bettersearch');
+    expect(curatedFamilyFor('Bielu.BetterSearch.Abstractions')?.slug).toBe('bettersearch');
+    expect(curatedFamilyFor('Bielu.BetterSearch.ElasticSearch')?.slug).toBe('bettersearch-elasticsearch');
+    expect(curatedFamilyFor('Bielu.BetterSearch.OpenSearch')?.slug).toBe('bettersearch-opensearch');
+    expect(curatedFamilyFor('Bielu.BetterSearch.Meilisearch')?.slug).toBe('bettersearch-meilisearch');
+    expect(curatedFamilyFor('Bielu.BetterSearch.Lifti')?.slug).toBe('bettersearch-lifti');
+    expect(curatedFamilyFor('Bielu.BetterSearch.Lucene')?.slug).toBe('bettersearch-lucene');
+    expect(curatedFamilyFor('Bielu.BetterSearch.Core')?.section).toBe('search');
+  });
+
   it('FAMILIES_HaveUniqueSlugs', () => {
     const slugs = FAMILIES.map((f) => f.slug);
     expect(new Set(slugs).size).toBe(slugs.length);

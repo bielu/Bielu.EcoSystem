@@ -13,7 +13,7 @@ Linked from [bielu.pl](https://bielu.pl) ([bielu/bielu.github.io](https://github
   1. A curated family in `src/lib/families.ts` claims a package by id prefix; the **longest** matching
      prefix wins, so `Bielu.AspNetCore.AsyncApi.Scalar` beats `Bielu.AspNetCore.AsyncApi`. Curated
      families are categories (AsyncAPI, Arazzo, Overlay, consoles…) and set the name, section
-     (flagship / infrastructure / libraries / legacy), summary, art and repo/docs links.
+     (flagship / search / infrastructure / libraries / legacy), summary, art and repo/docs links.
   2. Otherwise packages are grouped **automatically**: by GitHub repository (`projectUrl`), or failing that
      by the first two segments of the id. Auto families land in *Libraries*, or in *Legacy* when every
      package in them is deprecated.
