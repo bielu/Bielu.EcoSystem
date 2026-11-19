@@ -19,7 +19,7 @@ const wide = span >= 4;
 const allDeprecated = deprecatedCount === packages.length;
 const typeLabel: Record<string, string> = { DotnetTool: 'tool', Template: 'template' };
 const PREVIEW = wide ? 8 : 4;
-const chips = shortNames(packages.map((p) => p.id));
+const chips = shortNames(packages);
 ---
 
 <article
@@ -58,11 +58,12 @@ const chips = shortNames(packages.map((p) => p.id));
     <ul class="list">
       {
         packages.map((pkg) => (
-          <li data-search={[pkg.id, ...pkg.tags, family.name].join(' ').toLowerCase()} title={deprecationNote(pkg) || undefined}>
-            <a class="id mono" href={packagePath(pkg.id)}>
+          <li data-search={[pkg.id, ...pkg.tags, family.name, pkg.registry].join(' ').toLowerCase()} title={deprecationNote(pkg) || undefined}>
+            <a class="id mono" href={packagePath(pkg)}>
               {pkg.id}
             </a>
             <span class="badges">
+              {pkg.registry === 'npm' && <span class="badge accent">npm</span>}
               {typeLabel[pkg.type] && <span class="badge accent">{typeLabel[pkg.type]}</span>}
               {pkg.deprecation && <span class="badge warn">deprecated</span>}
             </span>

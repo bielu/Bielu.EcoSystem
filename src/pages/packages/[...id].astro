@@ -6,19 +6,21 @@ import {
   deprecationNote,
   formatCount,
   installSnippets,
-  nugetUrl,
   packagePath,
+  packageSlug,
   recommendedVersion,
+  registryUrl,
+  tagUrl,
   type FamilyGroup,
 } from '../../lib/catalog';
 import { getCatalog } from '../../lib/data';
-import type { Package } from '../../lib/nuget';
+import { REGISTRY_LABELS, type Package } from '../../lib/package';
 
 export const getStaticPaths = (async () => {
   const { sections } = await getCatalog();
   return sections.flatMap((s) =>
     s.families.flatMap((group) =>
-      group.packages.map((pkg) => ({ params: { id: pkg.id.toLowerCase() }, props: { pkg, group } })),
+      group.packages.map((pkg) => ({ params: { id: packageSlug(pkg) }, props: { pkg, group } })),
     ),
   );
 }) satisfies GetStaticPaths;
@@ -35,9 +37,11 @@ const siblings = group.packages.filter((p) => p.id !== pkg.id);
 const VISIBLE_VERSIONS = 12;
 const typeLabel: Record<string, string> = { DotnetTool: '.NET tool', Template: 'Template pack' };
 const art = pkg.iconUrl ? ({ kind: 'image', src: pkg.iconUrl } as const) : group.art;
+const registry = REGISTRY_LABELS[pkg.registry];
+const perVersionDownloads = pkg.versions.some((v) => v.downloads !== undefined);
 ---
 
-<Base title={`${pkg.id} — bielu packages`} description={pkg.description || `${pkg.id} on NuGet.`}>
+<Base title={`${pkg.id} — bielu packages`} description={pkg.description || `${pkg.id} on ${registry}.`}>
   <nav class="crumbs">
     <a href="/">Packages</a> / <a href={`/#${family.slug}`}>{family.name}</a>
   </nav>
@@ -50,6 +54,7 @@ const art = pkg.iconUrl ? ({ kind: 'image', src: pkg.iconUrl } as const) : group
     <div class="badges">
       <span class="badge accent mono">{version}</span>
       {pkg.version !== version && <span class="badge mono">next: {pkg.version}</span>}
+      {pkg.registry === 'npm' && <span class="badge accent">npm package</span>}
       {typeLabel[pkg.type] && <span class="badge accent">{typeLabel[pkg.type]}</span>}
       {pkg.verified && <span class="badge">verified owner</span>}
       {pkg.deprecation && <span class="badge warn">deprecated</span>}
@@ -63,7 +68,7 @@ const art = pkg.iconUrl ? ({ kind: 'image', src: pkg.iconUrl } as const) : group
           {pkg.deprecation.alternatePackage && (
             <>
               {' '}
-              <a href={nugetUrl(pkg.deprecation.alternatePackage.id)}>See {pkg.deprecation.alternatePackage.id} →</a>
+              <a href={registryUrl(pkg.registry, pkg.deprecation.alternatePackage.id)}>See {pkg.deprecation.alternatePackage.id} →</a>
             </>
           )}
         </p>
@@ -76,7 +81,7 @@ const art = pkg.iconUrl ? ({ kind: 'image', src: pkg.iconUrl } as const) : group
     </ul>
 
     <div class="links">
-      <a href={nugetUrl(pkg.id)}>NuGet</a>
+      <a href={registryUrl(pkg.registry, pkg.id)}>{registry}</a>
       {family.docs && <a href={family.docs}>Documentation</a>}
       {family.repo && <a href={family.repo}>Source</a>}
       {pkg.projectUrl && pkg.projectUrl !== family.docs && pkg.projectUrl !== family.repo && <a href={pkg.projectUrl}>Project site</a>}
@@ -107,7 +112,7 @@ const art = pkg.iconUrl ? ({ kind: 'image', src: pkg.iconUrl } as const) : group
         <h2>Tags</h2>
         <p class="tags">
           {pkg.tags.map((t) => (
-            <a class="badge" href={`https://www.nuget.org/packages?q=tags%3A${encodeURIComponent(t)}`}>
+            <a class="badge" href={tagUrl(pkg.registry, t)}>
               {t}
             </a>
           ))}
@@ -118,15 +123,15 @@ const art = pkg.iconUrl ? ({ kind: 'image', src: pkg.iconUrl } as const) : group
 
   <section>
     <h2>Versions</h2>
-    <p class="sub">Newest first, with per-version downloads.</p>
+    <p class="sub">{perVersionDownloads ? 'Newest first, with per-version downloads.' : 'Newest first.'}</p>
     <ol class="versions">
       {
         pkg.versions.map((v, i) => (
           <li class:list={{ more: i >= VISIBLE_VERSIONS }}>
-            <a class="mono" href={nugetUrl(pkg.id, v.version)}>
+            <a class="mono" href={registryUrl(pkg.registry, pkg.id, v.version)}>
               {v.version}
             </a>
-            <span class="mono">{formatCount(v.downloads)}</span>
+            {v.downloads !== undefined && <span class="mono">{formatCount(v.downloads)}</span>}
           </li>
         ))
       }
@@ -148,7 +153,7 @@ const art = pkg.iconUrl ? ({ kind: 'image', src: pkg.iconUrl } as const) : group
         <ul class="siblings">
           {siblings.map((p) => (
             <li>
-              <a class="mono" href={packagePath(p.id)}>
+              <a class="mono" href={packagePath(p)}>
                 {p.id}
               </a>
             </li>

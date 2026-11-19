@@ -1,9 +1,9 @@
 import { FAMILIES, SECTIONS, type Family, type Section } from './families';
 import type { FamilyIconName } from './family-icons';
 import type { IllustrationName } from './illustrations';
-import type { Package } from './nuget';
+import type { Package, Registry } from './package';
 
-/** What a family tile shows: a hand-drawn icon, the curated illustration, or a package's own NuGet icon. */
+/** What a family tile shows: a hand-drawn icon, the curated illustration, or a package's own icon. */
 export type FamilyArt =
   | { kind: 'icon'; name: FamilyIconName }
   | { kind: 'illustration'; name: IllustrationName }
@@ -16,7 +16,7 @@ export interface FamilyGroup {
   /** Most downloaded first. */
   packages: Package[];
   totalDownloads: number;
-  /** How many of {@link packages} are deprecated on NuGet. */
+  /** How many of {@link packages} are deprecated on their registry. */
   deprecatedCount: number;
   art: FamilyArt;
   hue: number;
@@ -34,6 +34,8 @@ export interface SectionGroup {
 export interface Catalog {
   sections: SectionGroup[];
   packageCount: number;
+  /** Package count per registry. */
+  registryCounts: Record<Registry, number>;
   totalDownloads: number;
 }
 
@@ -108,18 +110,25 @@ export function artFor(family: Family, packages: Package[]): FamilyArt {
 }
 
 /**
- * Compact labels for a family's packages: the dot-segments every id shares are dropped, as is a
- * leading `AspNetCore` segment. An id equal to the shared part keeps its last segment.
- * `[Bielu.AspNetCore.AsyncApi, Bielu.AspNetCore.AsyncApi.Scalar.SignalR]` → `[AsyncApi, Scalar.SignalR]`.
+ * Compact labels for a family's packages. For NuGet ids the dot-segments every NuGet id in the family
+ * shares are dropped, as is a leading `AspNetCore` segment; an id equal to the shared part keeps its
+ * last segment. npm names drop their scope.
+ * `[Bielu.AspNetCore.AsyncApi, Bielu.AspNetCore.AsyncApi.Scalar.SignalR, @bielu/scalar-grpc]`
+ * → `[AsyncApi, Scalar.SignalR, scalar-grpc]`.
  */
-export function shortNames(ids: string[]): string[] {
-  const split = ids.map((id) => id.split('.'));
-  if (split.length === 0) return [];
+export function shortNames(packages: Pick<Package, 'id' | 'registry'>[]): string[] {
+  const split = packages.filter((p) => p.registry === 'nuget').map((p) => p.id.split('.'));
   let common = 0;
-  while (split.every((parts) => parts.length > common && parts[common]!.toLowerCase() === split[0]![common]!.toLowerCase())) {
+  while (
+    split.length > 0 &&
+    split.every((parts) => parts.length > common && parts[common]!.toLowerCase() === split[0]![common]!.toLowerCase())
+  ) {
     common++;
   }
-  return split.map((parts) => {
+
+  return packages.map((pkg) => {
+    if (pkg.registry === 'npm') return pkg.id.replace(/^@[^/]+\//, '');
+    const parts = pkg.id.split('.');
     const rest = parts.slice(common);
     if (rest[0]?.toLowerCase() === 'aspnetcore' && rest.length > 1) rest.shift();
     return rest.length > 0 ? rest.join('.') : parts.at(-1)!;
@@ -191,7 +200,10 @@ export function buildCatalog(packages: Package[], families: Family[] = FAMILIES)
     })
     .filter((s) => s.families.length > 0);
 
-  return { sections, packageCount: packages.length, totalDownloads: sum(packages) };
+  const registryCounts: Record<Registry, number> = { nuget: 0, npm: 0 };
+  for (const pkg of packages) registryCounts[pkg.registry]++;
+
+  return { sections, packageCount: packages.length, registryCounts, totalDownloads: sum(packages) };
 }
 
 function sum(packages: Package[]): number {
@@ -221,10 +233,19 @@ export interface InstallSnippet {
   code: string;
 }
 
-/** Install instructions appropriate for the package type (library, dotnet tool or template pack). */
+/** Install instructions for the package's registry and type (npm package, library, dotnet tool or template pack). */
 export function installSnippets(pkg: Package): InstallSnippet[] {
   const version = recommendedVersion(pkg);
   const prerelease = version.includes('-');
+
+  if (pkg.registry === 'npm') {
+    const spec = prerelease ? `${pkg.id}@${version}` : pkg.id;
+    return [
+      { label: 'npm', code: `npm install ${spec}` },
+      { label: 'pnpm', code: `pnpm add ${spec}` },
+      { label: 'Yarn', code: `yarn add ${spec}` },
+    ];
+  }
 
   switch (pkg.type) {
     case 'DotnetTool':
@@ -259,9 +280,27 @@ export function deprecationNote(pkg: Package): string {
   return `Deprecated${reasons}.${message}${alternative}`;
 }
 
-/** NuGet gallery URL for a package, optionally pinned to a version. */
-export const nugetUrl = (id: string, version?: string): string =>
-  `https://www.nuget.org/packages/${id}${version ? `/${version}` : ''}`;
+/** Gallery URL of a package on its registry (nuget.org or npmjs.com), optionally pinned to a version. */
+export function registryUrl(registry: Registry, id: string, version?: string): string {
+  return registry === 'npm'
+    ? `https://www.npmjs.com/package/${id}${version ? `/v/${version}` : ''}`
+    : `https://www.nuget.org/packages/${id}${version ? `/${version}` : ''}`;
+}
 
-/** Site-relative URL of a package's detail page. NuGet ids are case-insensitive, so slugs are lowercase. */
-export const packagePath = (id: string): string => `/packages/${id.toLowerCase()}/`;
+/** Registry search for other packages carrying a tag (NuGet tag or npm keyword). */
+export function tagUrl(registry: Registry, tag: string): string {
+  const encoded = encodeURIComponent(tag);
+  return registry === 'npm'
+    ? `https://www.npmjs.com/search?q=keywords%3A${encoded}`
+    : `https://www.nuget.org/packages?q=tags%3A${encoded}`;
+}
+
+/**
+ * Path of a package's detail page below `/packages/`. NuGet ids are case-insensitive, so they are
+ * lowercased; npm packages live under `npm/` with the scope's `@` dropped (`npm/bielu/scalar-grpc`).
+ */
+export const packageSlug = (pkg: Pick<Package, 'id' | 'registry'>): string =>
+  pkg.registry === 'npm' ? `npm/${pkg.id.replace(/^@/, '')}` : pkg.id.toLowerCase();
+
+/** Site-relative URL of a package's detail page. */
+export const packagePath = (pkg: Pick<Package, 'id' | 'registry'>): string => `/packages/${packageSlug(pkg)}/`;

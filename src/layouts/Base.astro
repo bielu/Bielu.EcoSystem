@@ -32,11 +32,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <div class="wrap">
       <slot />
       <footer>
-        <span>© {new Date().getFullYear()} Arkadiusz Biel · data from NuGet, rebuilt nightly</span>
+        <span>© {new Date().getFullYear()} Arkadiusz Biel · data from NuGet and npm, rebuilt nightly</span>
         <span>
           <a href="https://bielu.pl">bielu.pl</a> ·
           <a href="https://github.com/bielu">GitHub</a> ·
-          <a href="https://www.nuget.org/profiles/bielu">NuGet</a>
+          <a href="https://www.nuget.org/profiles/bielu">NuGet</a> ·
+          <a href="https://www.npmjs.com/~bielu">npm</a>
         </span>
       </footer>
     </div>

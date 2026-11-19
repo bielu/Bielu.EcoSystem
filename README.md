@@ -1,19 +1,24 @@
 # Bielu.EcoSystem
 
-Source for [packages.bielu.pl](https://packages.bielu.pl): a catalogue of every NuGet package in the bielu
-.NET ecosystem, grouped into families by category. Built with [Astro](https://astro.build) and served by GitHub Pages.
+Source for [packages.bielu.pl](https://packages.bielu.pl): a catalogue of every NuGet and npm package in the
+bielu ecosystem, grouped into families by category. Built with [Astro](https://astro.build) and served by GitHub Pages.
 Linked from [bielu.pl](https://bielu.pl) ([bielu/bielu.github.io](https://github.com/bielu/bielu.github.io)).
 
 ## How it works
 
 - **Collection.** At build time the site queries the NuGet search API for every package owned by `bielu`,
-  prereleases included (`src/lib/nuget.ts`). Nothing is committed: a nightly scheduled build picks up new
+  prereleases included (`src/lib/nuget.ts`), and the npm registry for every package maintained by `bielu`
+  (`src/lib/npm.ts`). Both are normalised into one `Package` shape (`src/lib/package.ts`). npm download
+  totals are summed from the downloads API in yearly windows; npm reports no all-time per-version counts, so
+  npm version lists show versions only. Nothing is committed: a nightly scheduled build picks up new
   packages and versions.
 - **Grouping.** Packages are grouped into families (`src/lib/catalog.ts`):
-  1. A curated family in `src/lib/families.ts` claims a package by id prefix; the **longest** matching
-     prefix wins, so `Bielu.AspNetCore.AsyncApi.Scalar` beats `Bielu.AspNetCore.AsyncApi`. Curated
+  1. A curated family in `src/lib/families.ts` claims a package by id prefix (NuGet id or npm name); the
+     **longest** matching prefix wins, so `Bielu.AspNetCore.AsyncApi.Scalar` beats `Bielu.AspNetCore.AsyncApi`
+     The npm Scalar plugins (`@bielu/scalar-*`) have their own family; a family may also mix NuGet and npm
+     packages. Curated
      families are categories (AsyncAPI, Arazzo, Overlay, consoles…) and set the name, section
-     (flagship / infrastructure / libraries / legacy), summary, art and repo/docs links.
+     (flagship / search / infrastructure / libraries / legacy), summary, art and repo/docs links.
   2. Otherwise packages are grouped **automatically**: by GitHub repository (`projectUrl`), or failing that
      by the first two segments of the id. Auto families land in *Libraries*, or in *Legacy* when every
      package in them is deprecated.
@@ -23,9 +28,9 @@ Linked from [bielu.pl](https://bielu.pl) ([bielu/bielu.github.io](https://github
 - **Deprecation.** Deprecated packages are badged and struck through on the index, and their pages
   explain why and link to the replacement.
 - **Pages.** `/` lists every family as a bento grid (wide and narrow tiles alternating) with a
-  client-side filter; `/packages/<id>/` shows install commands
-  (CLI, `PackageReference`, Central Package Management, `dotnet tool` / `dotnet new` as appropriate),
-  tags, versions and sibling packages.
+  client-side filter; `/packages/<id>/` (NuGet) and `/packages/npm/<scope>/<name>/` (npm) show install
+  commands (CLI, `PackageReference`, Central Package Management, `dotnet tool` / `dotnet new` as
+  appropriate; `npm` / `pnpm` / `yarn` for npm), tags, versions and sibling packages.
 
 ## Development
 

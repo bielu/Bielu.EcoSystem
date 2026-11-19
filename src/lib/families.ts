@@ -1,8 +1,9 @@
 /**
- * Package families — the curated layer on top of NuGet data. NuGet knows packages; this file
- * knows which category each one belongs to and how that category is presented.
+ * Package families — the curated layer on top of registry data. NuGet and npm know packages; this
+ * file knows which category each one belongs to and how that category is presented.
  *
- * A package joins the family with the **longest** case-insensitive prefix matching its id, so a
+ * A package joins the family with the **longest** case-insensitive prefix matching its id (a NuGet id
+ * or an npm name such as `@bielu/scalar-grpc`; one family can hold both), so a
  * specific family (`Bielu.AspNetCore.AsyncApi.Scalar`) wins over a broad one (`Bielu.AspNetCore.AsyncApi`)
  * regardless of declaration order. Declaration order is display order. Packages no family claims are
  * grouped automatically (see `autoFamilyFor` in catalog.ts), so curating here is optional polish.
@@ -11,7 +12,7 @@
 import type { FamilyIconName } from './family-icons';
 import type { IllustrationName } from './illustrations';
 
-export type Section = 'flagship' | 'infrastructure' | 'libraries' | 'legacy';
+export type Section = 'flagship' | 'search' | 'infrastructure' | 'libraries' | 'legacy';
 
 export interface Family {
   /** URL slug, also used as the anchor on the index page. */
@@ -36,6 +37,10 @@ export const SECTIONS: Record<Section, { title: string; sub: string }> = {
     title: 'API descriptions',
     sub: 'Code-first AsyncAPI, Arazzo and Overlay for ASP.NET Core — the OpenAPI developer experience, applied to everything else.',
   },
+  search: {
+    title: 'Search',
+    sub: 'Bielu.BetterSearch, in beta: one query model for every search engine, so switching engines is a configuration change.',
+  },
   infrastructure: {
     title: 'Messaging & infrastructure',
     sub: 'Durable delivery, orchestration and secrets — the plumbing under distributed .NET systems.',
@@ -46,7 +51,7 @@ export const SECTIONS: Record<Section, { title: string; sub: string }> = {
   },
   legacy: {
     title: 'Legacy',
-    sub: 'Search, indexing and Umbraco packages. Still on NuGet, no longer actively developed.',
+    sub: 'Examine providers, the original search module and Umbraco packages. Still on NuGet, no longer actively developed.',
   },
 };
 
@@ -54,6 +59,12 @@ const API_DESCRIPTIONS = {
   repo: 'https://github.com/bielu/Bielu.AspNetCore.AsyncApi',
   docs: 'https://apidescriptions.bielu.pl/',
 };
+
+const BETTER_SEARCH = {
+  section: 'search',
+  repo: 'https://github.com/bielu/bielu.bettersearch',
+  docs: 'https://search.bielu.pl/',
+} as const;
 
 export const FAMILIES: Family[] = [
   // ---- API descriptions -------------------------------------------------------------------
@@ -85,6 +96,17 @@ export const FAMILIES: Family[] = [
     prefixes: ['Bielu.AspNetCore.AsyncApi.Scalar'],
     icon: 'scalar-consoles',
     hue: 160,
+    ...API_DESCRIPTIONS,
+  },
+  {
+    slug: 'scalar-plugins',
+    name: 'Scalar plugins (npm)',
+    section: 'flagship',
+    summary:
+      'The SignalR, gRPC, broker and Arazzo plugins behind the Scalar consoles, on npm for any Scalar host, plus standalone browser bundles.',
+    prefixes: ['@bielu/scalar-'],
+    illustration: 'console',
+    hue: 125,
     ...API_DESCRIPTIONS,
   },
   {
@@ -123,6 +145,63 @@ export const FAMILIES: Family[] = [
     icon: 'api-tooling',
     hue: 220,
     ...API_DESCRIPTIONS,
+  },
+
+  // ---- Search ------------------------------------------------------------------------------
+  // Slugs match the Bielu.BetterSearch parts on bielu.pl, which link to them as anchors.
+  {
+    slug: 'bettersearch',
+    name: 'BetterSearch',
+    summary:
+      'A provider-agnostic search abstraction for .NET: one query model with Lucene semantics, a fluent builder, and errors returned as results.',
+    prefixes: ['Bielu.BetterSearch.'],
+    hue: 175,
+    ...BETTER_SEARCH,
+  },
+  {
+    slug: 'bettersearch-elasticsearch',
+    name: 'Elasticsearch provider',
+    summary: 'Runs BetterSearch queries on Elasticsearch, with paging, sorting, post filters, highlighting and scores.',
+    prefixes: ['Bielu.BetterSearch.ElasticSearch'],
+    illustration: 'search',
+    hue: 195,
+    ...BETTER_SEARCH,
+  },
+  {
+    slug: 'bettersearch-opensearch',
+    name: 'OpenSearch provider',
+    summary: 'Runs BetterSearch queries on OpenSearch, with paging, sorting, post filters, highlighting, scores and basic or API-key auth.',
+    prefixes: ['Bielu.BetterSearch.OpenSearch'],
+    illustration: 'globe',
+    hue: 215,
+    ...BETTER_SEARCH,
+  },
+  {
+    slug: 'bettersearch-meilisearch',
+    name: 'Meilisearch provider',
+    summary: 'Runs BetterSearch queries on Meilisearch, translating raw Lucene queries into filters where it can.',
+    prefixes: ['Bielu.BetterSearch.Meilisearch'],
+    illustration: 'spark',
+    hue: 330,
+    ...BETTER_SEARCH,
+  },
+  {
+    slug: 'bettersearch-lifti',
+    name: 'In-memory provider',
+    summary: 'An in-process BetterSearch index on LIFTI, with no server to run.',
+    prefixes: ['Bielu.BetterSearch.Lifti'],
+    illustration: 'layers',
+    hue: 45,
+    ...BETTER_SEARCH,
+  },
+  {
+    slug: 'bettersearch-lucene',
+    name: 'Lucene.NET provider',
+    summary: 'In memory or on disk, replacing the LIFTI provider on the way to 1.0.',
+    prefixes: ['Bielu.BetterSearch.Lucene'],
+    illustration: 'book',
+    hue: 120,
+    ...BETTER_SEARCH,
   },
 
   // ---- Messaging & infrastructure ----------------------------------------------------------
