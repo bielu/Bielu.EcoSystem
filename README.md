@@ -15,7 +15,8 @@ Linked from [bielu.pl](https://bielu.pl) ([bielu/bielu.github.io](https://github
 - **Grouping.** Packages are grouped into families (`src/lib/catalog.ts`):
   1. A curated family in `src/lib/families.ts` claims a package by id prefix (NuGet id or npm name); the
      **longest** matching prefix wins, so `Bielu.AspNetCore.AsyncApi.Scalar` beats `Bielu.AspNetCore.AsyncApi`
-     and `@bielu/scalar-arazzo` beats `@bielu/scalar-`. A family can mix NuGet and npm packages. Curated
+     The npm Scalar plugins (`@bielu/scalar-*`) have their own family; a family may also mix NuGet and npm
+     packages. Curated
      families are categories (AsyncAPI, Arazzo, Overlay, consoles…) and set the name, section
      (flagship / search / infrastructure / libraries / legacy), summary, art and repo/docs links.
   2. Otherwise packages are grouped **automatically**: by GitHub repository (`projectUrl`), or failing that

@@ -52,9 +52,10 @@ describe('curatedFamilyFor', () => {
   });
 
   it('curatedFamilyFor_DefaultFamiliesClaimNpmScalarPlugins', () => {
-    expect(curatedFamilyFor('@bielu/scalar-signalr')?.slug).toBe('scalar-consoles');
-    expect(curatedFamilyFor('@bielu/scalar-grpc-standalone')?.slug).toBe('scalar-consoles');
-    expect(curatedFamilyFor('@bielu/scalar-arazzo')?.slug).toBe('arazzo');
+    expect(curatedFamilyFor('@bielu/scalar-signalr')?.slug).toBe('scalar-plugins');
+    expect(curatedFamilyFor('@bielu/scalar-grpc-standalone')?.slug).toBe('scalar-plugins');
+    expect(curatedFamilyFor('@bielu/scalar-arazzo')?.slug).toBe('scalar-plugins');
+    expect(curatedFamilyFor('Bielu.AspNetCore.Arazzo.Scalar')?.slug).toBe('arazzo');
   });
 
   it('curatedFamilyFor_DefaultFamiliesClaimBetterSearchPackages', () => {
