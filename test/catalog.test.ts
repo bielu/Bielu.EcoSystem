@@ -11,11 +11,13 @@ import {
   formatHeadline,
   hueFor,
   installSnippets,
-  nugetUrl,
   packagePath,
+  packageSlug,
   recommendedVersion,
+  registryUrl,
   shortNames,
   slugify,
+  tagUrl,
 } from '../src/lib/catalog';
 import { FAMILIES } from '../src/lib/families';
 import { FAMILY_ICONS } from '../src/lib/family-icons';
@@ -47,6 +49,12 @@ describe('curatedFamilyFor', () => {
     expect(curatedFamilyFor('Bielu.AspNetCore.Arazzo.Overlay')?.slug).toBe('overlay');
     expect(curatedFamilyFor('Bielu.Arazzo.NET.Readers')?.slug).toBe('arazzo');
     expect(curatedFamilyFor('Novicell.Examine.ElasticSearch')?.section).toBe('legacy');
+  });
+
+  it('curatedFamilyFor_DefaultFamiliesClaimNpmScalarPlugins', () => {
+    expect(curatedFamilyFor('@bielu/scalar-signalr')?.slug).toBe('scalar-consoles');
+    expect(curatedFamilyFor('@bielu/scalar-grpc-standalone')?.slug).toBe('scalar-consoles');
+    expect(curatedFamilyFor('@bielu/scalar-arazzo')?.slug).toBe('arazzo');
   });
 
   it('curatedFamilyFor_DefaultFamiliesClaimBetterSearchPackages', () => {
@@ -162,7 +170,29 @@ describe('buildCatalog', () => {
   });
 
   it('buildCatalog_ReturnsNoSectionsForNoPackages', () => {
-    expect(buildCatalog([], families)).toEqual({ sections: [], packageCount: 0, totalDownloads: 0 });
+    expect(buildCatalog([], families)).toEqual({
+      sections: [],
+      packageCount: 0,
+      registryCounts: { nuget: 0, npm: 0 },
+      totalDownloads: 0,
+    });
+  });
+
+  it('buildCatalog_MixesRegistriesInOneFamilyAndCountsEach', () => {
+    // Arrange
+    const mixed = [
+      makePackage({ id: 'Acme.Core', totalDownloads: 10 }),
+      makePackage({ id: '@acme/core-ui', registry: 'npm', totalDownloads: 30 }),
+    ];
+    const withNpm = [{ ...families[0]!, prefixes: ['Acme.Core', '@acme/core-'] }];
+
+    // Act
+    const catalog = buildCatalog(mixed, withNpm);
+
+    // Assert
+    expect(catalog.sections[0]!.families[0]!.packages.map((p) => p.id)).toEqual(['@acme/core-ui', 'Acme.Core']);
+    expect(catalog.registryCounts).toEqual({ nuget: 1, npm: 1 });
+    expect(catalog.totalDownloads).toBe(40);
   });
 });
 
@@ -197,10 +227,22 @@ describe('formatting', () => {
     expect(slugify('--Foo.Bar  Baz--')).toBe('foo-bar-baz');
   });
 
-  it('urls_AreBuiltFromIds', () => {
-    expect(nugetUrl('Acme.Core')).toBe('https://www.nuget.org/packages/Acme.Core');
-    expect(nugetUrl('Acme.Core', '1.0.0')).toBe('https://www.nuget.org/packages/Acme.Core/1.0.0');
-    expect(packagePath('Acme.Core')).toBe('/packages/acme.core/');
+  it('registryUrl_PointsAtEachRegistryGallery', () => {
+    expect(registryUrl('nuget', 'Acme.Core')).toBe('https://www.nuget.org/packages/Acme.Core');
+    expect(registryUrl('nuget', 'Acme.Core', '1.0.0')).toBe('https://www.nuget.org/packages/Acme.Core/1.0.0');
+    expect(registryUrl('npm', '@acme/core')).toBe('https://www.npmjs.com/package/@acme/core');
+    expect(registryUrl('npm', '@acme/core', '1.0.0')).toBe('https://www.npmjs.com/package/@acme/core/v/1.0.0');
+  });
+
+  it('tagUrl_SearchesTagsOrKeywords', () => {
+    expect(tagUrl('nuget', 'grpc web')).toBe('https://www.nuget.org/packages?q=tags%3Agrpc%20web');
+    expect(tagUrl('npm', 'scalar')).toBe('https://www.npmjs.com/search?q=keywords%3Ascalar');
+  });
+
+  it('packagePath_LowercasesNuGetAndNestsNpmWithoutScopeSign', () => {
+    expect(packagePath(makePackage({ id: 'Acme.Core' }))).toBe('/packages/acme.core/');
+    expect(packageSlug(makePackage({ id: '@acme/core', registry: 'npm' }))).toBe('npm/acme/core');
+    expect(packagePath(makePackage({ id: 'left-pad', registry: 'npm' }))).toBe('/packages/npm/left-pad/');
   });
 });
 
@@ -239,6 +281,23 @@ describe('installSnippets', () => {
     const snippets = installSnippets(makePackage({ id: 'Acme.Templates', type: 'Template' }));
     expect(snippets).toEqual([{ label: '.NET CLI', code: 'dotnet new install Acme.Templates::1.0.0' }]);
   });
+
+  it('installSnippets_NpmStableUsesBareName', () => {
+    // Act
+    const snippets = installSnippets(makePackage({ id: '@acme/core', registry: 'npm' }));
+
+    // Assert
+    expect(snippets).toEqual([
+      { label: 'npm', code: 'npm install @acme/core' },
+      { label: 'pnpm', code: 'pnpm add @acme/core' },
+      { label: 'Yarn', code: 'yarn add @acme/core' },
+    ]);
+  });
+
+  it('installSnippets_NpmPrereleasePinsVersion', () => {
+    const pkg = makePackage({ id: '@acme/core', registry: 'npm', version: '1.1.0-beta.1', stableVersion: undefined });
+    expect(installSnippets(pkg)[0]!.code).toBe('npm install @acme/core@1.1.0-beta.1');
+  });
 });
 
 describe('presentation helpers', () => {
@@ -266,12 +325,29 @@ describe('presentation helpers', () => {
   });
 
   it('shortNames_DropSharedSegmentsAndAspNetCore', () => {
+    const nuget = (...ids: string[]) => ids.map((id) => makePackage({ id }));
     expect(
-      shortNames(['Bielu.AspNetCore.AsyncApi', 'Bielu.AspNetCore.AsyncApi.Scalar.SignalR', 'bielu.aspnetcore.asyncapi.Ui']),
+      shortNames(nuget('Bielu.AspNetCore.AsyncApi', 'Bielu.AspNetCore.AsyncApi.Scalar.SignalR', 'bielu.aspnetcore.asyncapi.Ui')),
     ).toEqual(['AsyncApi', 'Scalar.SignalR', 'Ui']);
-    expect(shortNames(['Bielu.Arazzo.NET', 'Bielu.AspNetCore.Arazzo'])).toEqual(['Arazzo.NET', 'Arazzo']);
-    expect(shortNames(['Solo.Package'])).toEqual(['Package']);
+    expect(shortNames(nuget('Bielu.Arazzo.NET', 'Bielu.AspNetCore.Arazzo'))).toEqual(['Arazzo.NET', 'Arazzo']);
+    expect(shortNames(nuget('Solo.Package'))).toEqual(['Package']);
     expect(shortNames([])).toEqual([]);
+  });
+
+  it('shortNames_DropNpmScopeWithoutAffectingNuGetPrefix', () => {
+    // Arrange
+    const packages = [
+      makePackage({ id: 'Bielu.AspNetCore.AsyncApi.Scalar' }),
+      makePackage({ id: '@bielu/scalar-grpc', registry: 'npm' }),
+      makePackage({ id: 'Bielu.AspNetCore.AsyncApi.Scalar.Grpc' }),
+      makePackage({ id: 'left-pad', registry: 'npm' }),
+    ];
+
+    // Act
+    const names = shortNames(packages);
+
+    // Assert
+    expect(names).toEqual(['Scalar', 'scalar-grpc', 'Grpc', 'left-pad']);
   });
 
   it('artFor_PrefersDrawnIconThenIllustrationThenNuGetIconThenGeneric', () => {

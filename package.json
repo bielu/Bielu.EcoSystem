@@ -1,7 +1,7 @@
 {
   "name": "bielu-ecosystem",
   "version": "0.0.0",
-  "description": "packages.bielu.pl — catalogue of the bielu NuGet package ecosystem, built with Astro and served by GitHub Pages.",
+  "description": "packages.bielu.pl — catalogue of the bielu NuGet and npm package ecosystem, built with Astro and served by GitHub Pages.",
   "scripts": {
     "dev": "astro dev",
     "build": "astro check && astro build",

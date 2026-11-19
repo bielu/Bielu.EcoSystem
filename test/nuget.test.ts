@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fetchPackages, isPrerelease, NUGET_OWNER, toPackage, type SearchResult } from '../src/lib/nuget';
+import { fetchNugetPackages, NUGET_OWNER, toPackage, type SearchResult } from '../src/lib/nuget';
+import { isPrerelease } from '../src/lib/package';
 
 const result = (overrides: Partial<SearchResult> = {}): SearchResult => ({
   id: 'Acme.Core',
@@ -27,6 +28,7 @@ describe('toPackage', () => {
 
     // Assert
     expect(pkg).toMatchObject({
+      registry: 'nuget',
       id: 'Acme.Core',
       version: '2.0.0-beta.1',
       stableVersion: '1.1.0',
@@ -61,13 +63,13 @@ describe('toPackage', () => {
   });
 });
 
-describe('fetchPackages', () => {
-  it('fetchPackages_QueriesOwnerIncludingPrereleases', async () => {
+describe('fetchNugetPackages', () => {
+  it('fetchNugetPackages_QueriesOwnerIncludingPrereleases', async () => {
     // Arrange
     const fetchImpl = vi.fn(async () => jsonResponse({ totalHits: 1, data: [result()] }));
 
     // Act
-    const packages = await fetchPackages(fetchImpl as unknown as typeof fetch);
+    const packages = await fetchNugetPackages(fetchImpl as unknown as typeof fetch);
 
     // Assert
     expect(packages).toHaveLength(1);
@@ -77,7 +79,7 @@ describe('fetchPackages', () => {
     expect(url.searchParams.get('semVerLevel')).toBe('2.0.0');
   });
 
-  it('fetchPackages_PagesUntilTotalHitsReached', async () => {
+  it('fetchNugetPackages_PagesUntilTotalHitsReached', async () => {
     // Arrange
     const pages = [
       { totalHits: 1001, data: Array.from({ length: 1000 }, (_, i) => result({ id: `P${i}` })) },
@@ -86,31 +88,31 @@ describe('fetchPackages', () => {
     const fetchImpl = vi.fn(async () => jsonResponse(pages.shift()));
 
     // Act
-    const packages = await fetchPackages(fetchImpl as unknown as typeof fetch);
+    const packages = await fetchNugetPackages(fetchImpl as unknown as typeof fetch);
 
     // Assert
     expect(fetchImpl).toHaveBeenCalledTimes(2);
     expect(packages.at(-1)?.id).toBe('Last');
   });
 
-  it('fetchPackages_StopsOnEmptyPage', async () => {
+  it('fetchNugetPackages_StopsOnEmptyPage', async () => {
     // Arrange
     const fetchImpl = vi.fn(async () => jsonResponse({ totalHits: 5000, data: [] }));
 
     // Act
-    const packages = await fetchPackages(fetchImpl as unknown as typeof fetch);
+    const packages = await fetchNugetPackages(fetchImpl as unknown as typeof fetch);
 
     // Assert
     expect(packages).toEqual([]);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
-  it('fetchPackages_ThrowsOnHttpError', async () => {
+  it('fetchNugetPackages_ThrowsOnHttpError', async () => {
     // Arrange
     const fetchImpl = vi.fn(async () => new Response('nope', { status: 503, statusText: 'Service Unavailable' }));
 
     // Act / Assert
-    await expect(fetchPackages(fetchImpl as unknown as typeof fetch)).rejects.toThrow(
+    await expect(fetchNugetPackages(fetchImpl as unknown as typeof fetch)).rejects.toThrow(
       'NuGet search failed: 503 Service Unavailable',
     );
   });

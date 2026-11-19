@@ -1,8 +1,9 @@
 import type { Family } from '../src/lib/families';
-import type { Package } from '../src/lib/nuget';
+import type { Package } from '../src/lib/package';
 
 export function makePackage(overrides: Partial<Package> & { id: string }): Package {
   return {
+    registry: 'nuget',
     version: '1.0.0',
     stableVersion: '1.0.0',
     description: `${overrides.id} description. More text.`,

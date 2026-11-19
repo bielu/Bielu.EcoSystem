@@ -1,8 +1,9 @@
 /**
- * Package families — the curated layer on top of NuGet data. NuGet knows packages; this file
- * knows which category each one belongs to and how that category is presented.
+ * Package families — the curated layer on top of registry data. NuGet and npm know packages; this
+ * file knows which category each one belongs to and how that category is presented.
  *
- * A package joins the family with the **longest** case-insensitive prefix matching its id, so a
+ * A package joins the family with the **longest** case-insensitive prefix matching its id (a NuGet id
+ * or an npm name such as `@bielu/scalar-grpc`; one family can hold both), so a
  * specific family (`Bielu.AspNetCore.AsyncApi.Scalar`) wins over a broad one (`Bielu.AspNetCore.AsyncApi`)
  * regardless of declaration order. Declaration order is display order. Packages no family claims are
  * grouped automatically (see `autoFamilyFor` in catalog.ts), so curating here is optional polish.
@@ -91,8 +92,9 @@ export const FAMILIES: Family[] = [
     slug: 'scalar-consoles',
     name: 'Scalar consoles',
     section: 'flagship',
-    summary: 'Interactive SignalR, gRPC-Web and Kafka/MQTT/AMQP consoles inside the Scalar API reference, with Aspire variants.',
-    prefixes: ['Bielu.AspNetCore.AsyncApi.Scalar'],
+    summary:
+      'Interactive SignalR, gRPC-Web and Kafka/MQTT/AMQP consoles inside the Scalar API reference: NuGet packages with Aspire variants, and npm plugins for any Scalar host.',
+    prefixes: ['Bielu.AspNetCore.AsyncApi.Scalar', '@bielu/scalar-'],
     icon: 'scalar-consoles',
     hue: 160,
     ...API_DESCRIPTIONS,
@@ -101,8 +103,9 @@ export const FAMILIES: Family[] = [
     slug: 'arazzo',
     name: 'Arazzo',
     section: 'flagship',
-    summary: 'Arazzo workflow object model, readers and validation, plus ASP.NET Core integration that wires workflows to your live API documents.',
-    prefixes: ['Bielu.Arazzo.', 'Bielu.AspNetCore.Arazzo'],
+    summary:
+      'Arazzo workflow object model, readers and validation, ASP.NET Core integration that wires workflows to your live API documents, and a Scalar plugin that renders them.',
+    prefixes: ['Bielu.Arazzo.', 'Bielu.AspNetCore.Arazzo', '@bielu/scalar-arazzo'],
     icon: 'arazzo',
     hue: 320,
     ...API_DESCRIPTIONS,
